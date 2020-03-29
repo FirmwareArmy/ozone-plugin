@@ -1,0 +1,22 @@
+#!/bin/bash
+
+xpl_path=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
+
+cd ${xpl_path}/..
+
+set -e
+
+if [ ! -d ozone ]
+then
+	ozone_url=https://www.segger.com/downloads/jlink/Ozone_Linux_x86_64.tgz
+	curl $ozone_url --progress-bar -o Ozone_Linux_x86_64.tgz
+	
+	tar -xvzf Ozone_Linux_x86_64.tgz
+	mv Ozone_Linux_V310f_x86_64 ozone
+	rm Ozone_Linux_x86_64.tgz
+
+	rm -rf cmsis-svd
+	git clone https://github.com/posborne/cmsis-svd cmsis-svd
+	find cmsis-svd -name "*.svd" -exec cp -v {} ozone/Config/Peripherals/ \;
+	rm -rf cmsis-svd/.git
+fi
