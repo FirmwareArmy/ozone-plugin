@@ -9,7 +9,8 @@
 [packaging]
 	include = [
 		"ozone_plugin",
-		"ozone"
+		"ozone",
+		"template"
 	]
 	exclude = [
 		"*.pyc"
