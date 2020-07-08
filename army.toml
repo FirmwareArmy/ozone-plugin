@@ -1,16 +1,13 @@
-[project]
-	type = "plugin"
-	name = "ozone-plugin"
-	description = "Ozone debugger plugin"
-	version = "3.10.0" 
+name = "ozone-plugin"
+description = "ozone debugger plugin"
+version = "3.10.0" 
 	
-	entrypoint = "ozone_plugin/build.py"
-
 [packaging]
 	include = [
 		"ozone_plugin",
 		"ozone",
-		"template"
+		"template",
+		"__init__.py"
 	]
 	exclude = [
 		"*.pyc"
