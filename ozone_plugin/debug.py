@@ -44,55 +44,30 @@ def debug(ctx, **kwargs):
     config = ctx.parent.config
 
     # load project
-    project = None
-    if os.path.exists('army.toml'):
-        try:
-            # load project configuration
-            project = load_project()
-        except Exception as e:
-            print_stack()
-            print(f"army.toml: {e}", sys.stderr)
-            exit(1)
+    project = ctx.parent.project
     if project is None:
         print(f"no project found", sys.stderr)
         exit(1)
-
+    
     # get target config
-    target = None
-    target_name = None
-    if config.target.value()!="":
-        # if target is specified in command line then it is taken by default
-        log.info(f"Search command target: {config.target}")
-        
-        # get target config
-        for t in project.target:
-            if t==config.target.value():
-                target = project.target[t]
-                target_name = t
-        if target is None:
-            print(f"{config.target}: target not found", file=sys.stderr)
-            exit(1)
-    elif project.default_target:
-        log.info(f"Search default target: {project.default_target}")
-        for t in project.target:
-            if t==project.default_target:
-                target = project.target[t]
-                target_name = t
-        if target is None:
-            print(f"{project.default_target}: target not found", file=sys.stderr)
-            exit(1)
-    else:
+    target = ctx.parent.target
+    target_name = ctx.parent.target_name
+    if target is None:
         print(f"no target specified", file=sys.stderr)
         exit(1)
-    log.debug(f"target: {target}")
 
     # set build path
     build_path = os.path.join(output_path, target_name)
     log.info(f"build_path: {build_path}")
     
     # load dependencies
-    dependencies = load_project_packages(project, target_name)
-    log.debug(f"dependencies: {dependencies}")
+    try:
+        dependencies = load_project_packages(project, target_name)
+        log.debug(f"dependencies: {dependencies}")
+    except Exception as e:
+        print_stack()
+        print(f"{e}", file=sys.stderr)
+        clean_exit()
 
     # set build arch 
     arch, arch_pkg = get_arch(config, target, dependencies)
