@@ -2,10 +2,12 @@ from army.api.click import verbose_option
 from army.api.debugtools import print_stack
 from army.api.log import log, get_log_level
 from army.army import cli, build
+from army.api.package import load_project_packages
 import click
 import subprocess
 import os
 import tornado.template as template
+import sys
 
 # import shutil
 # import extargparse
@@ -30,7 +32,7 @@ def to_relative_path(path):
         path = os.path.relpath(abspath, cwd)
     return path
 
-plugin_path = to_relative_path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+plugin_path = to_relative_path(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 @build.command(name='debug', help='Debug firmware')
 @verbose_option()
@@ -56,6 +58,8 @@ def debug(ctx, **kwargs):
         print(f"no target specified", file=sys.stderr)
         exit(1)
 
+    output_path = 'output'
+
     # set build path
     build_path = os.path.join(output_path, target_name)
     log.info(f"build_path: {build_path}")
@@ -68,12 +72,14 @@ def debug(ctx, **kwargs):
         print_stack()
         print(f"{e}", file=sys.stderr)
         clean_exit()
-
+ 
     # set build arch 
     arch, arch_pkg = get_arch(config, target, dependencies)
     log.debug(f"arch: {arch}")
 
-    log.info("Debug $device with Ozone")
+    device = target.arch
+
+    log.info(f"Debug {device} with Ozone")
 # 
     hex_file = os.path.join(build_path, "bin/firmware.hex")
     binfile = os.path.join(build_path, "bin/firmware.bin")
@@ -87,7 +93,7 @@ def debug(ctx, **kwargs):
         ]
 
         # add CMakeLists.txt
-        if add_project_file(arch, target):
+        if add_project_file(arch, target, target_name):
             commandline += [
                 '-project', f'project.jdebug'
             ]
@@ -129,7 +135,7 @@ def get_arch(config, target, dependencies):
                     exit(1)
 
     if found_dependency is None:
-        log.error(f"no configuration available for arch '{target.arch}'")
+        print(f"no configuration available for arch '{target.arch}'", file=sys.stderr)
         exit(1)
     
     return found_dependency
@@ -155,42 +161,55 @@ def cmake_get_variable(path, name):
     
     return None
 
-def add_project_file(arch, target):
+def add_project_file(arch, target, target_name):
     project_load = [
         f'Project.AddPathSubstitute ("{os.path.abspath(os.getcwd())}", "$(ProjectDir)");',
     ]
 
-    definition = os.path.join(arch['path'], arch['module'], arch['definition'])
-    device = cmake_get_variable(definition, "DEVICE")
-    cpu = cmake_get_variable(definition, "CPU")
+    if arch.cpu is None:
+        cpu = target.arch
+    else:
+        cpu = arch.cpu
 
-    cpu_map = {}
-    cpu_svd = {}
-    cpu_freertos = {}
+    cpu_map = {
+        }
+    cpu_svd = {
+        'Cortex-M0+': "Cortex-M0"
+        }
+    cpu_freertos = {
+        'Cortex-M0+': "CM0"
+        }
     device_svd = {}
 
-    cpu_map['cortex-m0plus'] = "Cortex-M0+"
-    cpu_svd['cortex-m0plus'] = "Cortex-M0"
-    cpu_freertos['cortex-m0plus'] = "CM0"
-    device_svd['samd21g18au'] = "ATSAMD51G18A"
     
-    if cpu not in cpu_map:
-        low.warning(f"No correspondance defined for device {cpu}")
-        return False
-    
-    if device not in device_svd:
-        low.warning(f"No correspondance defined for device {device}")
-        return False
-    
-    project_load.append(f'Project.SetDevice ("{cpu_map[cpu]}");') 
+#     if cpu not in cpu_map:
+#         print(f"No correspondance defined for device {cpu}", file=sys.stderr)
+#         return False
+    if cpu in cpu_map:
+        project_load.append(f'Project.SetDevice ("{cpu_map[cpu]}");') 
+    else:
+        project_load.append(f'Project.SetDevice ("{cpu}");') 
+        
     project_load.append('Project.SetHostIF ("USB", "");')
     project_load.append('Project.SetTargetIF ("SWD");')
     project_load.append('Project.SetTIFSpeed ("12 MHz");')
 
-    project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/CPU/{cpu_svd[cpu]}.svd");')
-    project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{device_svd[device]}.svd");')
-    project_load.append(f'Project.SetOSPlugin("FreeRTOSPlugin_{cpu_freertos[cpu]}");')
-    project_load.append(f'File.Open ("$(ProjectDir)/output/{target["name"]}/bin/firmware.elf");')
+    if cpu in cpu_svd:
+        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/CPU/{cpu_svd[cpu]}.svd");')
+    else:
+        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/CPU/{cpu}.svd");')
+
+    if cpu in device_svd:        
+        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{device_svd[device]}.svd");')
+    else:
+        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{cpu}.svd");')
+        
+    if cpu in cpu_freertos:
+        project_load.append(f'Project.SetOSPlugin("FreeRTOSPlugin_{cpu_freertos[cpu]}");')
+    else:
+        log.warning(f"No freertos correspondance defined for device {cpu}")
+    
+    project_load.append(f'File.Open ("$(ProjectDir)/output/{target_name}/bin/firmware.elf");')
     
     # write CMakeLists.txt from template
     try:
