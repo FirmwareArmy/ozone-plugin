@@ -6,3 +6,5 @@
 # Python Files
 *.py[cod]
 /ozone/
+/output/
+/cmsis-svd/
