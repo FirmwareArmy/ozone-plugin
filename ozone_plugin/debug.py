@@ -171,6 +171,8 @@ def add_project_file(arch, target, target_name):
     else:
         cpu = arch.cpu
 
+    peripheral = target.arch
+
     cpu_map = {
         }
     cpu_svd = {
@@ -199,10 +201,14 @@ def add_project_file(arch, target, target_name):
     else:
         project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/CPU/{cpu}.svd");')
 
-    if cpu in device_svd:        
-        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{device_svd[device]}.svd");')
+    if cpu in device_svd:
+        svd_file = f"{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{device_svd[device]}.svd"
     else:
-        project_load.append(f'Project.AddSvdFile ("{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{cpu}.svd");')
+        svd_file = f"{os.path.abspath(plugin_path)}/ozone/Config/Peripherals/{peripheral}.svd"
+    if os.path.exists(svd_file):
+        project_load.append(f'Project.AddSvdFile ("{svd_file}");')
+    else:
+        log.warning(f"No peripherals found for {peripheral}")
         
     if cpu in cpu_freertos:
         project_load.append(f'Project.SetOSPlugin("FreeRTOSPlugin_{cpu_freertos[cpu]}");')
