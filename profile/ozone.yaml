@@ -1,0 +1,7 @@
+plugins:
+- name: ozone-plugin
+  version: 3.20.0
+
+tools:
+  ozone:
+    path: "{{package: ozone-plugin@3.20.0}}/ozone/Ozone"

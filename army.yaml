@@ -1,0 +1,17 @@
+name: ozone-plugin
+description: ozone debugger plugin
+version: 3.20.0
+
+packaging:
+  include:
+  - plugin
+  - ozone
+  - template
+  exclude:
+  - "*.pyc"
+
+profiles:
+- ozone
+
+plugins: 
+- plugin
