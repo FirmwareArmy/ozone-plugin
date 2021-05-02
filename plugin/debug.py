@@ -207,9 +207,9 @@ def add_project_file(arch):
         project_load.append(f'Project.AddSvdFile ("{os.path.abspath(os.path.expanduser(tools_path))}/ozone/Config/CPU/{cpu}.svd");')
 
     if cpu in device_svd:
-        svd_file = f"{os.path.abspath(tools_path)}/ozone/Config/Peripherals/AT{device_svd[device]}.svd"
+        svd_file = f"{os.path.abspath(os.path.expanduser(tools_path))}/ozone/Config/Peripherals/AT{device_svd[device]}.svd"
     else:
-        svd_file = f"{os.path.abspath(tools_path)}/ozone/Config/Peripherals/AT{peripheral}.svd"
+        svd_file = f"{os.path.abspath(os.path.expanduser(tools_path))}/ozone/Config/Peripherals/AT{peripheral}.svd"
     if os.path.exists(svd_file):
         project_load.append(f'Project.AddSvdFile ("{svd_file}");')
     else:

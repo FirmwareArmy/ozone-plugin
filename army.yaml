@@ -2,6 +2,9 @@ name: ozone-plugin
 description: ozone debugger plugin
 version: 3.20.0
 
+dependencies:
+  compile-plugin: ~1.0.0
+
 packaging:
   include:
   - plugin
