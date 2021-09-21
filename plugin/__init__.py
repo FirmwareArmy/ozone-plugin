@@ -6,4 +6,4 @@ parser = get_army_parser()
 if parser.find_group("build") is None:
     parser.add_group(name="build", help="Build Commands", chain=True)
 
-import debug
+import ozone_plugin.debug
